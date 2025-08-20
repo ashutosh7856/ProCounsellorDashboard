@@ -2,20 +2,20 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import {toast} from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader,} from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Eye, EyeOff, } from "lucide-react"
+import { Eye, EyeOff} from "lucide-react"
 import { useAuthStore} from "@/store/AuthStore"
-import { useRouter } from "next/navigation"
+
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
-  const {loading,login, error} = useAuthStore()
-  const router = useRouter();
+  const {loading,login, error, clearError} = useAuthStore()
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -25,9 +25,6 @@ export default function LoginPage() {
     const email = formData.username
     const password = formData.password
     await login(email, password)
-    router.push('/')
-
-
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -36,6 +33,14 @@ export default function LoginPage() {
       [e.target.name]: e.target.value,
     }))
   }
+  const notify = () => toast.error('invalid credentials')
+
+  useEffect(()=>{
+    if(error){
+      notify();
+      clearError();
+    }
+  }, [error, clearError])
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -51,12 +56,6 @@ export default function LoginPage() {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
-
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input

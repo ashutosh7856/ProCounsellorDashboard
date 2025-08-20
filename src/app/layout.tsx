@@ -1,6 +1,8 @@
 'use client'
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import 'react-toastify/dist/ReactToastify.css';
+import { ToastContainer } from "react-toastify";
 import {Header} from "@/components/ui/Header";
 import {useAuthStore} from "@/store/AuthStore"
 import { usePathname } from "next/navigation";
@@ -76,7 +78,21 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100`}
       >
+        
        {!hidepath &&   <Header/>}
+        <ToastContainer
+         position="top-right"
+         autoClose={3000}
+         hideProgressBar={false}
+         newestOnTop={false}
+         closeOnClick
+         rtl={false}
+         pauseOnFocusLoss
+         draggable
+         pauseOnHover
+         theme="light"
+         toastStyle={{ zIndex: 99999 }}
+       />
        <main className={hidepath?'pt-0':'pt-16'}>
         {children}
         </main>

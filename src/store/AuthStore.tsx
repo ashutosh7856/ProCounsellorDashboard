@@ -13,6 +13,7 @@ type AuthState = {
     login: (email:string, password:string)=>Promise<void>
     logout: ()=>void
     loading:boolean
+    clearError:()=>void
     error:string | null
     isInitialized:boolean
     initializeAuth:()=>void
@@ -38,7 +39,6 @@ export const useAuthStore = create<AuthState>((set)=>({
             sessionStorage.setItem('user', JSON.stringify(res.data))
 
             console.log(res.data.jwtToken)
-
         }catch(err){
             const message = axios.isAxiosError(err)
             ? err.response?.data?.message ?? err.message
@@ -66,5 +66,8 @@ export const useAuthStore = create<AuthState>((set)=>({
             sessionStorage.removeItem('user')
             set({isInitialized:true})
         }
+    },
+    clearError:()=>{
+        set({error:null})
     }
 }))
