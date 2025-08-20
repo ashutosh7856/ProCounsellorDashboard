@@ -5,15 +5,17 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Eye, CheckCircle, Clock, ChevronLeft, ChevronRight } from "lucide-react"
 import { Counsellor } from "@/lib/types"
 
 interface CounselorListProps {
   counsellors: Counsellor[]
   onSelectCounselor: (id: string) => void
+  loading?: boolean
 }
 
-export function CounselorList({ counsellors, onSelectCounselor }: CounselorListProps) {
+export function CounselorList({ counsellors, onSelectCounselor, loading = false }: CounselorListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 5
 
@@ -28,7 +30,36 @@ export function CounselorList({ counsellors, onSelectCounselor }: CounselorListP
 
   return (
     <div className="space-y-4">
-      {currentCounselors.map((counselor) => (
+      {loading ? (
+        // Skeleton loading cards
+        Array.from({ length: 5 }).map((_, index) => (
+          <Card key={index} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <Skeleton className="h-12 w-12 rounded-full" />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Skeleton className="h-6 w-40" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                      <Skeleton className="h-4 w-36" />
+                      <Skeleton className="h-4 w-44" />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))
+      ) : (
+        currentCounselors.map((counselor) => (
         <Card key={counselor.userName} className="hover:shadow-md transition-shadow">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -102,9 +133,10 @@ export function CounselorList({ counsellors, onSelectCounselor }: CounselorListP
             </div>
           </CardContent>
         </Card>
-      ))}
+        ))
+      )}
 
-      {counsellors.length === 0 && (
+      {!loading && counsellors.length === 0 && (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-gray-500">No counselors found matching your criteria.</p>
@@ -112,7 +144,7 @@ export function CounselorList({ counsellors, onSelectCounselor }: CounselorListP
         </Card>
       )}
 
-      {totalPages > 1 && (
+      {!loading && totalPages > 1 && (
         <div className="flex items-center justify-between mt-6">
           <p className="text-sm text-gray-600">
             Showing {startIndex + 1} to {Math.min(endIndex, counsellors.length)} of {counsellors.length} counselors
