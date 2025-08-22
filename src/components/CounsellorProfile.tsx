@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import {toast} from 'react-toastify'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Textarea } from "@/components/ui/textarea"
+import { EditData } from "@/lib/types"
 import axios from "axios"
 import {
   AlertDialog,
@@ -51,30 +52,40 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
   const [actionMessage, setActionMessage] = useState("")
   const [counselorStatus, setCounselorStatus] = useState(counselor?.verified || false)
 
-  const [editData, setEditData] = useState({
-    firstName: counselor?.firstName || "",
-    lastName: counselor?.lastName || "",
-    email: counselor?.email || "",
-    phoneNumber: counselor?.phoneNumber || "",
-    description: counselor?.description || "",
-    experience: counselor?.experience || "",
-    ratePerYear: counselor?.ratePerYear || "",
-    ratePerMinute: counselor?.ratePerMinute || "",
-    plusAmount: counselor?.plusAmount || "",
-    proAmount: counselor?.proAmount || "",
-    eliteAmount: counselor?.eliteAmount || "",
-    organisationName: counselor?.organisationName || "",
-    city: counselor?.fullOfficeAddress?.city || "",
-    state: counselor?.fullOfficeAddress?.state || "",
-    pinCode: counselor?.fullOfficeAddress?.pinCode || "",
-    officeAddress: counselor?.fullOfficeAddress?.officeNameFloorBuildingAndArea || "",
-    languagesKnow: counselor?.languagesKnow?.join(", ") || "",
-    stateOfCounsellor: counselor?.stateOfCounsellor?.join(", ") || "",
-    expertise: counselor?.expertise?.join(", ") || "",
-    workingDays: counselor?.workingDays?.join(", ") || "",
-    officeStartTime: counselor?.officeStartTime || "",
-    officeEndTime: counselor?.officeEndTime || "",
+  const [editData, setEditData] = useState<EditData>({
+    ratePerYear: counselor?.ratePerYear ?? null,
+    ratePerMinute: counselor?.ratePerMinute ?? null,
+    plusAmount: counselor?.plusAmount ?? null,
+    proAmount: counselor?.proAmount ?? null,
+    eliteAmount: counselor?.eliteAmount ?? null,
   })
+
+  // Sync editData when counselor prop changes
+  useEffect(() => {
+    setEditData({
+      ratePerYear: counselor?.ratePerYear ?? null,
+      ratePerMinute: counselor?.ratePerMinute ?? null,
+      plusAmount: counselor?.plusAmount ?? null,
+      proAmount: counselor?.proAmount ?? null,
+      eliteAmount: counselor?.eliteAmount ?? null,
+    })
+  }, [counselor])
+
+  const notifyError = () => toast.error('Failed to save changes')
+  const notifySuccess = ()=> toast.success('Saved changes')
+
+  // Safe number conversion helper
+  const safeNumber = (value: string): number | null => {
+    if (value === "" || value === null || value === undefined) return null
+    const num = Number(value)
+    return Number.isNaN(num) ? null : num
+  }
+
+  // Generic number field setter
+  const setNumberField = (field: keyof EditData) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const numValue = safeNumber(e.target.value)
+    setEditData(prev => ({ ...prev, [field]: numValue }))
+  }
 
   useEffect(() => {
     if (actionMessage) {
@@ -97,9 +108,45 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
     )
   }
 
-  const handleSave = () => {
-    console.log("Saving counselor data:", editData)
-    setIsEditing(false)
+  const handleSave = async() => {
+    const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/updateCounsellor?adminId=${process.env.NEXT_PUBLIC_ADMIN_ID}&counsellorId=${counselor.userName}`
+    
+    // Normalize payload - only include non-null numeric values
+    const payload: Record<string, number> = {}
+    Object.entries(editData).forEach(([key, value]) => {
+      if (value !== null && value !== undefined && !Number.isNaN(value)) {
+        payload[key] = value
+      }
+    })
+
+    // Don't send request if no valid data
+    if (Object.keys(payload).length === 0) {
+      toast.info('No valid changes to save')
+      return
+    }
+
+    try {
+      const res = await axios.patch(backendUrl, payload, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      })
+      
+      if (res.status === 200) {
+        notifySuccess()
+        setIsEditing(false)
+        // Update local state with saved values
+        setEditData(prev => ({ ...prev, ...payload }))
+        // Refresh parent component
+        onCounselorUpdate?.()
+      } else {
+        notifyError()
+      }
+    } catch (_error) {
+      console.error('Save failed:', _error)
+      notifyError()
+    }
   }
 
   const handleApprove = async () => {
@@ -114,7 +161,7 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
         onCounselorUpdate?.()
       }
       
-    } catch (error) {
+    } catch {
       setActionMessage("Failed to approve counselor. Please try again.")
     } finally {
       setIsApproving(false)
@@ -328,62 +375,23 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="firstName">First Name</Label>
-                    {isEditing ? (
-                      <Input
-                        id="firstName"
-                        value={editData.firstName}
-                        onChange={(e) => setEditData({ ...editData, firstName: e.target.value })}
-                      />
-                    ) : (
                       <p className="mt-1 text-sm text-gray-900">{counselor.firstName}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="lastName">Last Name</Label>
-                    {isEditing ? (
-                      <Input
-                        id="lastName"
-                        value={editData.lastName}
-                        onChange={(e) => setEditData({ ...editData, lastName: e.target.value })}
-                      />
-                    ) : (
+                    
                       <p className="mt-1 text-sm text-gray-900">{counselor.lastName}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="email">Email</Label>
-                    {isEditing ? (
-                      <Input
-                        id="email"
-                        value={editData.email}
-                        onChange={(e) => setEditData({ ...editData, email: e.target.value })}
-                      />
-                    ) : (
                       <p className="mt-1 text-sm text-gray-900">{counselor.email || "Not provided"}</p>
-                    )}
                   </div>
                   <div>
                     <Label htmlFor="phoneNumber">Phone Number</Label>
-                    {isEditing ? (
-                      <Input
-                        id="phoneNumber"
-                        value={editData.phoneNumber}
-                        onChange={(e) => setEditData({ ...editData, phoneNumber: e.target.value })}
-                      />
-                    ) : (
                       <p className="mt-1 text-sm text-gray-900">{counselor.phoneNumber || "Not provided"}</p>
-                    )}
                   </div>
                   <div>
                     <Label>Languages</Label>
-                    {isEditing ? (
-                      <Input
-                        value={editData.languagesKnow}
-                        onChange={(e) => setEditData({ ...editData, languagesKnow: e.target.value })}
-                        placeholder="Enter languages separated by commas"
-                        className="mt-1"
-                      />
-                    ) : (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {counselor.languagesKnow?.map((lang: string, index: number) => (
                           <Badge key={index} variant="outline" className="text-xs">
@@ -391,18 +399,9 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                           </Badge>
                         ))}
                       </div>
-                    )}
                   </div>
                   <div>
                     <Label>States of Operation</Label>
-                    {isEditing ? (
-                      <Input
-                        value={editData.stateOfCounsellor}
-                        onChange={(e) => setEditData({ ...editData, stateOfCounsellor: e.target.value })}
-                        placeholder="Enter states separated by commas"
-                        className="mt-1"
-                      />
-                    ) : (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {counselor.stateOfCounsellor?.map((state: string, index: number) => (
                           <Badge key={index} variant="outline" className="text-xs">
@@ -410,23 +409,13 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                           </Badge>
                         ))}
                       </div>
-                    )}
                   </div>
                 </div>
 
                 {counselor.description && (
                   <div>
                     <Label htmlFor="description">Description</Label>
-                    {isEditing ? (
-                      <Textarea
-                        id="description"
-                        value={editData.description}
-                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                        rows={3}
-                      />
-                    ) : (
                       <p className="mt-1 text-sm text-gray-900">{counselor.description}</p>
-                    )}
                   </div>
                 )}
               </CardContent>
@@ -444,55 +433,22 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   <div className="space-y-3">
                     <div>
                       <Label htmlFor="city">City</Label>
-                      {isEditing ? (
-                        <Input
-                          id="city"
-                          value={editData.city}
-                          onChange={(e) => setEditData({ ...editData, city: e.target.value })}
-                        />
-                      ) : (
                         <p className="mt-1 text-sm text-gray-900">{counselor.fullOfficeAddress.city}</p>
-                      )}
                     </div>
                     <div>
                       <Label htmlFor="state">State</Label>
-                      {isEditing ? (
-                        <Input
-                          id="state"
-                          value={editData.state}
-                          onChange={(e) => setEditData({ ...editData, state: e.target.value })}
-                        />
-                      ) : (
                         <p className="mt-1 text-sm text-gray-900">{counselor.fullOfficeAddress.state}</p>
-                      )}
                     </div>
                     <div>
                       <Label htmlFor="pinCode">Pin Code</Label>
-                      {isEditing ? (
-                        <Input
-                          id="pinCode"
-                          value={editData.pinCode}
-                          onChange={(e) => setEditData({ ...editData, pinCode: e.target.value })}
-                        />
-                      ) : (
                         <p className="mt-1 text-sm text-gray-900">{counselor.fullOfficeAddress.pinCode}</p>
-                      )}
                     </div>
                     {counselor.fullOfficeAddress.officeNameFloorBuildingAndArea && (
                       <div>
                         <Label htmlFor="officeAddress">Office Address</Label>
-                        {isEditing ? (
-                          <Textarea
-                            id="officeAddress"
-                            value={editData.officeAddress}
-                            onChange={(e) => setEditData({ ...editData, officeAddress: e.target.value })}
-                            rows={2}
-                          />
-                        ) : (
                           <p className="mt-1 text-sm text-gray-900">
                             {counselor.fullOfficeAddress.officeNameFloorBuildingAndArea}
                           </p>
-                        )}
                       </div>
                     )}
                     <div>
@@ -535,23 +491,16 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label htmlFor="experience">Experience (Years)</Label>
-                  {isEditing ? (
-                    <Input
-                      id="experience"
-                      value={editData.experience}
-                      onChange={(e) => setEditData({ ...editData, experience: e.target.value })}
-                    />
-                  ) : (
                     <p className="mt-1 text-sm text-gray-900">{counselor.experience || "Not specified"}</p>
-                  )}
                 </div>
                 <div>
                   <Label htmlFor="ratePerYear">Rate Per Year</Label>
                   {isEditing ? (
                     <Input
                       id="ratePerYear"
-                      value={editData.ratePerYear}
-                      onChange={(e) => setEditData({ ...editData, ratePerYear: e.target.value })}
+                      type="number"
+                      value={editData.ratePerYear ?? ''}
+                      onChange={setNumberField('ratePerYear')}
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
@@ -564,8 +513,10 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   {isEditing ? (
                     <Input
                       id="ratePerMinute"
-                      value={editData.ratePerMinute}
-                      onChange={(e) => setEditData({ ...editData, ratePerMinute: e.target.value })}
+                      type="number"
+                      step="0.01"
+                      value={editData.ratePerMinute ?? ''}
+                      onChange={setNumberField('ratePerMinute')}
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
@@ -578,8 +529,9 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   {isEditing ? (
                     <Input
                       id="plusAmount"
-                      value={editData.plusAmount}
-                      onChange={(e) => setEditData({ ...editData, plusAmount: e.target.value })}
+                      type="number"
+                      value={editData.plusAmount ?? ''}
+                      onChange={setNumberField('plusAmount')}
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
@@ -592,8 +544,9 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   {isEditing ? (
                     <Input
                       id="proAmount"
-                      value={editData.proAmount}
-                      onChange={(e) => setEditData({ ...editData, proAmount: e.target.value })}
+                      type="number"
+                      value={editData.proAmount ?? ''}
+                      onChange={setNumberField('proAmount')}
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
@@ -606,8 +559,9 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   {isEditing ? (
                     <Input
                       id="eliteAmount"
-                      value={editData.eliteAmount}
-                      onChange={(e) => setEditData({ ...editData, eliteAmount: e.target.value })}
+                      type="number"
+                      value={editData.eliteAmount ?? ''}
+                      onChange={setNumberField('eliteAmount')}
                     />
                   ) : (
                     <p className="mt-1 text-sm text-gray-900">
@@ -617,26 +571,10 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                 </div>
                 <div>
                   <Label htmlFor="organisationName">Organization</Label>
-                  {isEditing ? (
-                    <Input
-                      id="organisationName"
-                      value={editData.organisationName}
-                      onChange={(e) => setEditData({ ...editData, organisationName: e.target.value })}
-                    />
-                  ) : (
                     <p className="mt-1 text-sm text-gray-900">{counselor.organisationName || "Not specified"}</p>
-                  )}
                 </div>
                 <div>
                   <Label>Working Days</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editData.workingDays}
-                      onChange={(e) => setEditData({ ...editData, workingDays: e.target.value })}
-                      placeholder="Enter working days separated by commas (e.g., Monday, Tuesday, Wednesday)"
-                      className="mt-1"
-                    />
-                  ) : (
                     <div className="mt-1 flex flex-wrap gap-1">
                       {counselor.workingDays?.map((day: string, index: number) => (
                         <Badge key={index} variant="outline" className="text-xs">
@@ -644,47 +582,20 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                         </Badge>
                       ))}
                     </div>
-                  )}
                 </div>
                 <div>
                   <Label>Office Hours</Label>
-                  {isEditing ? (
-                    <div className="mt-1 grid grid-cols-2 gap-2">
-                      <Input
-                        type="time"
-                        value={editData.officeStartTime}
-                        onChange={(e) => setEditData({ ...editData, officeStartTime: e.target.value })}
-                        placeholder="Start time"
-                      />
-                      <Input
-                        type="time"
-                        value={editData.officeEndTime}
-                        onChange={(e) => setEditData({ ...editData, officeEndTime: e.target.value })}
-                        placeholder="End time"
-                      />
-                    </div>
-                  ) : (
                     <p className="mt-1 text-sm text-gray-900">
                       {counselor.officeStartTime && counselor.officeEndTime
                         ? `${counselor.officeStartTime} - ${counselor.officeEndTime}`
                         : "Not specified"}
                     </p>
-                  )}
                 </div>
               </div>
 
               {counselor.expertise && (
                 <div>
                   <Label>Expertise</Label>
-                  {isEditing ? (
-                    <Textarea
-                      value={editData.expertise}
-                      onChange={(e) => setEditData({ ...editData, expertise: e.target.value })}
-                      placeholder="Enter expertise areas separated by commas"
-                      className="mt-1"
-                      rows={2}
-                    />
-                  ) : (
                     <div className="mt-1 flex flex-wrap gap-2">
                       {counselor.expertise.map((skill: string, index: number) => (
                         <Badge key={index} variant="secondary">
@@ -692,7 +603,6 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                         </Badge>
                       ))}
                     </div>
-                  )}
                 </div>
               )}
             </CardContent>
@@ -784,7 +694,7 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                 </div>
               </CardContent>
             </Card>
-
+{/* 
             <Card>
               <CardHeader>
                 <CardTitle>Followers ({counselor.followerIds?.length || 0})</CardTitle>
@@ -798,7 +708,7 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   )) || <p className="text-gray-500 text-center py-4">No followers</p>}
                 </div>
               </CardContent>
-            </Card>
+            </Card> */}
           </div>
         </TabsContent>
 

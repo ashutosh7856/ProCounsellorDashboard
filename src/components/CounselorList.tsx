@@ -31,7 +31,6 @@ export function CounselorList({ counsellors, onSelectCounselor, loading = false 
   return (
     <div className="space-y-4">
       {loading ? (
-        // Skeleton loading cards
         Array.from({ length: 5 }).map((_, index) => (
           <Card key={index} className="hover:shadow-md transition-shadow">
             <CardContent className="p-6">

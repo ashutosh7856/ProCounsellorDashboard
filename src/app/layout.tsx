@@ -20,10 +20,6 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
-// export const metadata: Metadata = {
-//   title: "ProCounsel-Admin",
-//   description: "This is the amdin section of procounsel",
-// };
 export default function RootLayout({
   children,
 }: Readonly<{

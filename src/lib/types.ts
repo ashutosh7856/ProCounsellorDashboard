@@ -29,6 +29,14 @@ type Transaction = {
   status: string;
 };
 
+export  type EditData = {
+  ratePerYear?: number | null
+  ratePerMinute?: number | null
+  plusAmount?: number | null
+  proAmount?: number | null
+  eliteAmount?: number | null
+ }
+
 export type Counsellor = {
   userName: string;
   role: string;

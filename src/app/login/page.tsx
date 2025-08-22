@@ -34,7 +34,7 @@ export default function LoginPage() {
     }))
   }
   const notify = () => toast.error('invalid credentials')
-
+  
   useEffect(()=>{
     if(error){
       notify();
