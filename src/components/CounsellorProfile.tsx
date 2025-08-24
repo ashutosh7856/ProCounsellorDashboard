@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { ClientProfile } from "./ui/ClientProfile"
 import {toast} from 'react-toastify'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -35,7 +36,9 @@ import {
   Star,
   FileText,
   Loader2,
+  Eye,
 } from "lucide-react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "./ui/dialog"
 
 interface CounselorProfileProps {
   counselor: any
@@ -51,6 +54,7 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
   const [showRejectDialog, setShowRejectDialog] = useState(false)
   const [actionMessage, setActionMessage] = useState("")
   const [counselorStatus, setCounselorStatus] = useState(counselor?.verified || false)
+  const [clientsData, setClientsData] = useState<any[]>([])
 
   const [editData, setEditData] = useState<EditData>({
     ratePerYear: counselor?.ratePerYear ?? null,
@@ -60,7 +64,26 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
     eliteAmount: counselor?.eliteAmount ?? null,
   })
 
-  // Sync editData when counselor prop changes
+  useEffect(()=>{
+    async function clients(){
+     try{
+       const res = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/getSubscribedClients?adminId=${process.env.NEXT_PUBLIC_ADMIN_ID}&counsellorId=${counselor.userName}`, 
+        {
+          headers:{
+          Accept:'application/json'
+        }
+      })
+      const data = Array.isArray(res.data)? res.data : []
+      setClientsData(data)
+     }catch(error){
+      console.log(error)
+     }
+    }
+
+    clients()
+  }, [counselor.userName])
+
+
   useEffect(() => {
     setEditData({
       ratePerYear: counselor?.ratePerYear ?? null,
@@ -74,14 +97,12 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
   const notifyError = () => toast.error('Failed to save changes')
   const notifySuccess = ()=> toast.success('Saved changes')
 
-  // Safe number conversion helper
   const safeNumber = (value: string): number | null => {
     if (value === "" || value === null || value === undefined) return null
     const num = Number(value)
     return Number.isNaN(num) ? null : num
   }
 
-  // Generic number field setter
   const setNumberField = (field: keyof EditData) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const numValue = safeNumber(e.target.value)
     setEditData(prev => ({ ...prev, [field]: numValue }))
@@ -111,7 +132,6 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
   const handleSave = async() => {
     const backendUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/updateCounsellor?adminId=${process.env.NEXT_PUBLIC_ADMIN_ID}&counsellorId=${counselor.userName}`
     
-    // Normalize payload - only include non-null numeric values
     const payload: Record<string, number> = {}
     Object.entries(editData).forEach(([key, value]) => {
       if (value !== null && value !== undefined && !Number.isNaN(value)) {
@@ -119,7 +139,6 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
       }
     })
 
-    // Don't send request if no valid data
     if (Object.keys(payload).length === 0) {
       toast.info('No valid changes to save')
       return
@@ -136,9 +155,7 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
       if (res.status === 200) {
         notifySuccess()
         setIsEditing(false)
-        // Update local state with saved values
         setEditData(prev => ({ ...prev, ...payload }))
-        // Refresh parent component
         onCounselorUpdate?.()
       } else {
         notifyError()
@@ -465,13 +482,13 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
                   <div className="mt-2 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Phone Verified</span>
-                      <Badge variant={counselor.phoneOtpVerified ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={counselor.phoneOtpVerified ? "default" : "secondary"} className={counselor.phoneOtpVerified ? ' bg-green-100 text-green-800 text-xs' : 'text-xs'}>
                         {counselor.phoneOtpVerified ? "Verified" : "Pending"}
                       </Badge>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-sm">Email Verified</span>
-                      <Badge variant={counselor.emailOtpVerified ? "default" : "secondary"} className="text-xs">
+                      <Badge variant={counselor.emailOtpVerified ? "default" : "secondary"} className={counselor.emailOtpVerified ? " bg-green-100  text-green-800 text-xs ": 'text-xs'}>
                         {counselor.emailOtpVerified ? "Verified" : "Pending"}
                       </Badge>
                     </div>
@@ -670,45 +687,61 @@ export function CounselorProfile({ counselor, onBack, onCounselorUpdate }: Couns
           </div>
         </TabsContent>
 
+
         <TabsContent value="clients">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-4">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center">
                   <Users className="w-4 h-4 mr-2" />
-                  Active Clients ({counselor.clients?.length || 0})
+                  Subscribed Clients ({clientsData.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {counselor.clients?.map((client: any, index: number) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div>
-                        <p className="font-medium">User ID: {client.userId}</p>
-                        <Badge variant="outline" className="text-xs mt-1">
-                          {client.plan} plan
-                        </Badge>
+                <div className="space-y-2">
+                  {clientsData.map((client: any, index: number) => (
+                    <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={client.photoUrlSmall || undefined} />
+                          <AvatarFallback className="text-xs">
+                            {client.firstName?.[0]}
+                            {client.lastName?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {client.firstName} {client.lastName}
+                          </p>
+                          <p className="text-xs text-gray-600">ID: {client.userName}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {client.subscribedCounsellors?.map((sub: any, subIndex: number) => (
+                          <Badge key={subIndex} variant="outline" className="text-xs">
+                            {sub.plan}
+                          </Badge>
+                        ))}
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button variant="outline" size="sm">
+                              <Eye className="w-3 h-3 mr-1" />
+                              View
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-md">
+                            <DialogHeader>
+                              <DialogTitle>Client Profile</DialogTitle>
+                            </DialogHeader>
+                            <ClientProfile client={client} />
+                          </DialogContent>
+                        </Dialog>
                       </div>
                     </div>
-                  )) || <p className="text-gray-500 text-center py-4">No active clients</p>}
+                  ))}
                 </div>
               </CardContent>
             </Card>
-{/* 
-            <Card>
-              <CardHeader>
-                <CardTitle>Followers ({counselor.followerIds?.length || 0})</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {counselor.followerIds?.map((followerId: string, index: number) => (
-                    <div key={index} className="p-2 bg-gray-50 rounded text-sm">
-                      User ID: {followerId}
-                    </div>
-                  )) || <p className="text-gray-500 text-center py-4">No followers</p>}
-                </div>
-              </CardContent>
-            </Card> */}
           </div>
         </TabsContent>
 

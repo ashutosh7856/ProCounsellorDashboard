@@ -1,35 +1,34 @@
 import { create } from "zustand"
-import { Counsellor } from "@/lib/types"
+import { Withdrawal } from "@/lib/types"
 import axios from "axios"
 
-type CounsellorStore = {
-  counsellors: Counsellor[]
+type WithdrawalStore = {
+  withdrawals: Withdrawal[]
   loading: boolean
   error: string | null
-  fetchCounsellor: () => Promise<void>
+  fetchWithdrawals: () => Promise<void>
   hasFetched:boolean
 }
 
-export const useCounsellorStore = create<CounsellorStore>((set) => ({
-  counsellors: [],
+export const useWithdrawalStore = create<WithdrawalStore>((set) => ({
+  withdrawals: [],
   loading: false,
   error: null,
   hasFetched: false,
-  fetchCounsellor: async () => {
+  fetchWithdrawals: async () => {
     set({ loading: true, error: null })
     try {
-      const res = await axios.get<Counsellor[]>(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/getAllCounsellors?adminId=${process.env.NEXT_PUBLIC_ADMIN_ID}`,
+      const res = await axios.get<Withdrawal[]>(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/admin/getAllWithdrawals?adminId=${process.env.NEXT_PUBLIC_ADMIN_ID}`,
         {
           headers: {
             Accept: "application/json",
-            // Authorization: `Bearer ${token}`,
           },
           timeout: 10000,
         }
       )
 
-      set({ counsellors: res.data, hasFetched:true, loading: false })
+      set({ withdrawals: res.data, hasFetched:true, loading: false })
     } catch (err) {
       const message = axios.isAxiosError(err)
         ? err.response?.data?.message ?? err.message

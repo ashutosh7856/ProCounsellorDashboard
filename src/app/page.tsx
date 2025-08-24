@@ -17,7 +17,7 @@ export default function Home() {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterStatus, setFilterStatus] = useState<"all" | "approved" | "pending">("all")
   const {user}= useAuthStore()
-  const {counsellors, loading, error, fetchCounsellor} = useCounsellorStore()
+  const {counsellors, loading, hasFetched , fetchCounsellor} = useCounsellorStore()
 
   const filteredCounselors = counsellors.filter((counselor) => {
     const matchesSearch = `${counselor.firstName} ${counselor.lastName}`
@@ -31,15 +31,16 @@ export default function Home() {
     return matchesSearch && matchesFilter
   })
 
-    const fetchData= useCallback(()=>{
+
+  const fetchData= useCallback(()=>{
         fetchCounsellor()
     }, [fetchCounsellor])
 
-        useEffect(()=>{
-            if(user){
-                fetchData();
-            }
-        }, [user, fetchData])
+  useEffect(()=>{
+    if(user && !hasFetched){
+      fetchData();
+    }
+  }, [user, fetchData, hasFetched])
 
   const approvedCount = counsellors.filter((c) => c.verified).length
   const pendingCount = counsellors.filter((c) => !c.verified).length

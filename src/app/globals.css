@@ -42,6 +42,10 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+body{
+   --sidebar-width: 24rem;
+  --sidebar-width-mobile: 22rem;
+}
 
 :root {
   --radius: 0.625rem;
@@ -76,7 +80,10 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  --sidebar-width: 20rem;       
+  --sidebar-width-mobile: 24rem;  
 }
+
 
 .dark {
   --background: oklch(0.145 0 0);
@@ -121,31 +128,29 @@
   }
 }
 
-/* globals.css */
 
-/* Apply to entire page */
 html, body {
-  scrollbar-width: thin; /* Firefox */
-  scrollbar-color: #cbd5e0 #f9fafb; /* thumb color & track color */
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e0 #f9fafb;
 }
 
-/* Chrome, Edge, Safari */
+
 ::-webkit-scrollbar {
-  width: 6px;   /* vertical scrollbar */
-  height: 6px;  /* horizontal scrollbar */
+  width: 6px;  
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f9fafb; /* matches bg-gray-50 */
+  background: #f9fafb; 
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: #cbd5e0; /* subtle gray */
+  background-color: #cbd5e0; 
   border-radius: 9999px;
-  border: 1px solid #f9fafb; /* separates thumb from track */
+  border: 1px solid #f9fafb; 
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: #94a3b8; /* slightly darker on hover */
+  background-color: #94a3b8; 
 }

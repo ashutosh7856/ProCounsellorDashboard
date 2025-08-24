@@ -2,13 +2,15 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import 'react-toastify/dist/ReactToastify.css';
+import React from "react";
 import { ToastContainer } from "react-toastify";
-import {Header} from "@/components/ui/Header";
 import {useAuthStore} from "@/store/AuthStore"
 import { usePathname } from "next/navigation";
 import { useEffect} from "react";
 import {useRouter} from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
 
 
 const geistSans = Geist({
@@ -75,7 +77,6 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-100`}
       >
         
-       {!hidepath &&   <Header/>}
         <ToastContainer
          position="top-right"
          autoClose={3000}
@@ -89,9 +90,21 @@ export default function RootLayout({
          theme="light"
          toastStyle={{ zIndex: 99999 }}
        />
-       <main className={hidepath?'pt-0':'pt-16'}>
-        {children}
+       {hidepath ? (
+        <main>
+          {children}
         </main>
+       ):(
+        <SidebarProvider  style={{ "--sidebar-width": "18rem" } as React.CSSProperties}>
+        <AppSidebar />
+
+        <main className={'pt-2 flex-1 min-w-0'}>
+          <SidebarTrigger />
+         {children}
+        </main>
+
+       </SidebarProvider>
+       )}
       </body>
     </html>
   );
